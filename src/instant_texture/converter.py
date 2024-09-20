@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import trimesh
 import xatlas
-from PIL import Image
+from PIL import Image, ImageFilter
 from pathlib import Path
 import warnings
 
@@ -14,7 +14,8 @@ class Converter:
     Converts vertex-colored .obj meshes to uv-mapped, textured .glb meshes.
     """
 
-    def __init__(self, texture_size: int = 1024, upscale_factor: int = 1):
+    def __init__(self, texture_size: int = 1024, upscale_factor: int = 2,
+                 median_filter_size: int = 3, blur_filter_radius: int = 1):
         """
         Initializes the Converter.
 
@@ -26,6 +27,8 @@ class Converter:
         self.texture_size = texture_size
         self.upscaling = upscale_factor
         self.buffer_size = texture_size * upscale_factor
+        self.median_size = median_filter_size
+        self.blur_radius = blur_filter_radius
 
         self.texture_buffer = np.zeros(
             (self.buffer_size, self.buffer_size, 4), dtype=np.uint8
@@ -83,11 +86,13 @@ class Converter:
                         )
 
         self._inpaint_texture()
-        texture_image = self._resize_texture()
+
+        self.texture = Image.fromarray(self.texture_buffer)
+        self._filter_and_resize_texture()
 
         material = trimesh.visual.material.PBRMaterial(
             baseColorFactor=[1.0, 1.0, 1.0, 1.0],
-            baseColorTexture=texture_image,
+            baseColorTexture=self.texture,
             metallicFactor=0.0,
             roughnessFactor=1.0,
         )
@@ -139,16 +144,13 @@ class Converter:
         )
         inpainted_bgra = cv2.cvtColor(inpainted_bgr, cv2.COLOR_BGR2BGRA)
         self.texture_buffer = inpainted_bgra[::-1]
-
-    def _resize_texture(self) -> None:
+    
+    def _filter_and_resize_texture(self) -> None:
         """
-        Resize the texture buffer to the desired texture size.
-
-        Returns:
-            PIL Image: The resized texture image.
+        Filter and resize the texture to reduce artifacts.
         """
-        texture_image = Image.fromarray(self.texture_buffer)
-        texture_image = texture_image.resize(
+        self.texture = self.texture.filter(ImageFilter.MedianFilter(size=self.median_size))
+        self.texture = self.texture.filter(ImageFilter.GaussianBlur(radius=self.blur_radius))
+        self.texture = self.texture.resize(
             (self.texture_size, self.texture_size), Image.Resampling.LANCZOS
         )
-        return texture_image
