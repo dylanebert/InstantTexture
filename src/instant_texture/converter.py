@@ -14,8 +14,13 @@ class Converter:
     Converts vertex-colored .obj meshes to uv-mapped, textured .glb meshes.
     """
 
-    def __init__(self, texture_size: int = 1024, upscale_factor: int = 2,
-                 median_filter_size: int = 3, blur_filter_radius: int = 1):
+    def __init__(
+        self,
+        texture_size: int = 1024,
+        upscale_factor: int = 2,
+        median_filter_size: int = 3,
+        blur_filter_radius: int = 1,
+    ):
         """
         Initializes the Converter.
 
@@ -48,7 +53,11 @@ class Converter:
 
         output_mesh_path = self._validate_output_path(output_mesh_path)
 
-        mesh = trimesh.load(input_mesh_path)
+        if input_mesh_path.startswith("http"):
+            mesh = trimesh.load_remote(input_mesh_path)
+        else:
+            mesh = trimesh.load(input_mesh_path)
+
         if not hasattr(mesh, "visual") or not hasattr(mesh.visual, "vertex_colors"):
             warnings.warn("Input mesh must be an obj file with vertex colors.")
             return None
@@ -144,13 +153,17 @@ class Converter:
         )
         inpainted_bgra = cv2.cvtColor(inpainted_bgr, cv2.COLOR_BGR2BGRA)
         self.texture_buffer = inpainted_bgra[::-1]
-    
+
     def _filter_and_resize_texture(self) -> None:
         """
         Filter and resize the texture to reduce artifacts.
         """
-        self.texture = self.texture.filter(ImageFilter.MedianFilter(size=self.median_size))
-        self.texture = self.texture.filter(ImageFilter.GaussianBlur(radius=self.blur_radius))
+        self.texture = self.texture.filter(
+            ImageFilter.MedianFilter(size=self.median_size)
+        )
+        self.texture = self.texture.filter(
+            ImageFilter.GaussianBlur(radius=self.blur_radius)
+        )
         self.texture = self.texture.resize(
             (self.texture_size, self.texture_size), Image.Resampling.LANCZOS
         )
