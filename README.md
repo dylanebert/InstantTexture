@@ -39,6 +39,10 @@ converter = Converter()
 converter.convert(input_mesh_path, output_mesh_path)
 ```
 
+## Walkthrough
+
+For a complete walkthrough of the process, see the [walkthrough notebook](https://githubtocolab.com/dylanebert/InstantTexture/blob/main/notebooks/walkthrough.ipynb).
+
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for more details.
