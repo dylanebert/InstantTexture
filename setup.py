@@ -14,6 +14,7 @@ setup(
         "xatlas",
         "opencv-python",
         "Pillow",
+        "httpx",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
